@@ -60,7 +60,7 @@
     <div class="text-md-end">
       <div class="text-muted">Deuda actual</div>
       <div style="font-weight:900;font-size:26px;" class="{% if deuda_actual > 0 %}text-danger{% else %}text-success{% endif %}">
-        ${{ deuda_actual }}
+        ${{ deuda_actual|floatformat:2 }}
       </div>
       <a href="{% url 'deuda_por_cliente' %}" class="btn btn-outline-secondary btn-sm mt-2">Volver</a>
     </div>

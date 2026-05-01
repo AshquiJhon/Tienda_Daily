@@ -7,7 +7,7 @@
   <title>{% block titulo %}Sistema de Tienda{% endblock %}</title>
 
   <link rel="shortcut icon" type="image/png"
-        href="{% static 'plantilla/src/assets/images/logos/seodashlogo.png' %}" />
+        href="{% static 'plantilla/src/assets/images/logos/logo_principal.jpeg' %}" />
 
   <link rel="stylesheet" href="{% static 'plantilla/src/assets/css/styles.min.css' %}" />
   <link rel="stylesheet" href="{% static 'plantilla/src/assets/cssn/styles.css' %}" />
@@ -90,11 +90,10 @@
     <!-- Sidebar -->
     <aside class="left-sidebar">
       <div>
-        <div class="brand-logo d-flex align-items-center justify-content-between">
+        <div class="brand-logo d-flex align-items-center justify-content-center">
           <a href="{% url 'index' %}" class="text-nowrap logo-img">
-            <img src="{% static 'plantilla/src/assets/images/logos/logo-light.svg' %}" alt="Logo" />
+            <img width="80px" src="{% static 'plantilla/src/assets/images/logos/logo_principal.jpeg' %}" alt="Logo" />
           </a>
-
           <div class="close-btn d-xl-none d-block sidebartoggler cursor-pointer" id="sidebarCollapse">
             <i class="ti ti-x fs-8"></i>
           </div>

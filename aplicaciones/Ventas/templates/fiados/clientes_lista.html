@@ -73,7 +73,7 @@
 
               <td>
                 {% if c.deuda_total > 0 %}
-                  <span class="money text-danger">${{ c.deuda_total }}</span>
+                  <span class="money text-danger"> ${{ c.deuda_total|floatformat:2 }}</span>
                 {% else %}
                   <span class="money text-success">$0.00</span>
                 {% endif %}
