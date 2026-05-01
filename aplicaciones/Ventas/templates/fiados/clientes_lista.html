@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block titulo %}Fiados por Cliente{% endblock %}
+{% block contenido %}
+
+<style>
+  .tabla-compacta td, .tabla-compacta th { padding: .55rem .75rem !important; vertical-align: middle; }
+  .chip { padding: .25rem .55rem; border-radius: 999px; font-size: .80rem; font-weight: 700; display:inline-block; }
+  .chip-ok { background:#e8fff3; color:#0f5132; border:1px solid #b7f0d0; }
+  .chip-warn { background:#fff4e5; color:#7a4b00; border:1px solid #ffd8a8; }
+  .chip-off { background:#f1f3f5; color:#495057; border:1px solid #dee2e6; }
+  .money { font-weight:800; font-size: 1.05rem; }
+</style>
+
+<div class="container-fluid">
+  <div class="card">
+    <div class="card-body">
+
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+          <h4 class="mb-1">Fiados (Deuda por cliente)</h4>
+          <small class="text-muted">Aquí ves quién debe y cuánto (suma de saldos FIADO).</small>
+        </div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="row g-2 mb-3">
+        <div class="col-md-5">
+          <label class="form-label"><b>Buscar</b></label>
+          <input id="f_q" class="form-control" placeholder="Nombre o celular"
+                 value="{{ f.q }}">
+          <small class="text-muted">Filtra al escribir.</small>
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label"><b>Estado</b></label>
+          <select id="f_estado" class="form-select">
+            <option value="con_deuda" {% if f.estado == "con_deuda" %}selected{% endif %}>Con deuda</option>
+            <option value="al_dia" {% if f.estado == "al_dia" %}selected{% endif %}>Al día</option>
+            <option value="todos" {% if f.estado == "todos" %}selected{% endif %}>Todos</option>
+          </select>
+        </div>
+
+      
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover tabla-compacta">
+          <thead class="table-light">
+            <tr>
+              <th>Cliente</th>
+              <th style="width:180px;">Celular</th>
+              <th style="width:160px;">Deuda total</th>
+              <th style="width:140px;">Fiados abiertos</th>
+              <th style="width:190px;">Último fiado</th>
+              <th style="width:150px;" class="text-center">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in clientes %}
+            <tr>
+              <td>
+                <div class="fw-semibold">{{ c.nombres_apellidos }}</div>
+                <!--<small class="text-muted">ID: {{ c.id }}</small>-->
+              </td>
+
+              <td>
+                {% if c.celular %}
+                  <span class="chip chip-off">{{ c.celular }}</span>
+                {% else %}
+                  <span class="chip chip-off">Sin celular</span>
+                {% endif %}
+              </td>
+
+              <td>
+                {% if c.deuda_total > 0 %}
+                  <span class="money text-danger">${{ c.deuda_total }}</span>
+                {% else %}
+                  <span class="money text-success">$0.00</span>
+                {% endif %}
+              </td>
+
+              <td>
+                {% if c.fiados_abiertos > 0 %}
+                  <span class="chip chip-warn">{{ c.fiados_abiertos }}</span>
+                {% else %}
+                  <span class="chip chip-ok">0</span>
+                {% endif %}
+              </td>
+
+              <td class="text-muted">
+                {% if c.ultimo_fiado %}
+                  {{ c.ultimo_fiado|date:"d/m/Y H:i" }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+
+              <td class="text-center">
+                <a class="btn btn-sm btn-primary"
+                   href="{% url 'deuda_cliente_detalle' c.id %}">
+                  Ver detalle
+                </a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6" class="text-center text-muted py-4">No hay resultados.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  // auto-filtros (sin botón)
+  function setParam(k, v){
+    const params = new URLSearchParams(window.location.search);
+    if(v && v.trim() !== "") params.set(k, v.trim());
+    else params.delete(k);
+    window.location.search = params.toString();
+  }
+
+  let t = null;
+  const q = document.getElementById("f_q");
+  q.addEventListener("keyup", () => {
+    clearTimeout(t);
+    t = setTimeout(() => setParam("q", q.value), 350);
+  });
+
+  document.getElementById("f_estado").addEventListener("change", (e)=> setParam("estado", e.target.value));
+  document.getElementById("f_desde").addEventListener("change", (e)=> setParam("desde", e.target.value));
+  document.getElementById("f_hasta").addEventListener("change", (e)=> setParam("hasta", e.target.value));
+</script>
+
+{% endblock %}

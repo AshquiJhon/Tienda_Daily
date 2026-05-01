@@ -1,0 +1,316 @@
+{% extends "base.html" %}
+{% block titulo %}Productos{% endblock %}
+
+{% block contenido %}
+<style>
+  .tabla-compacta td, .tabla-compacta th { padding: .55rem .75rem !important; vertical-align: middle; }
+  .chip { padding: .25rem .55rem; border-radius: 999px; font-size: .80rem; font-weight: 600; display:inline-block; }
+  .chip-ok { background: #e8fff3; color: #0f5132; border: 1px solid #b7f0d0; }
+  .chip-off { background: #f1f3f5; color: #495057; border: 1px solid #dee2e6; }
+  .code-pill {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    background: #f6f8fa; border: 1px solid #e9ecef; padding: .2rem .45rem; border-radius: .5rem;
+  }
+  .acciones { display: flex; gap: .4rem; justify-content: center; }
+  .btn-icon { display:inline-flex; align-items:center; gap:.35rem; }
+  .dt-container { margin-top: .5rem; }
+
+  /* Botones filtro */
+  .filtros button.active {
+    color: #fff !important;
+    background: #0d6efd !important;
+    border-color: #0d6efd !important;
+  }
+</style>
+
+<div class="container-fluid">
+  <div class="card">
+    <div class="card-body">
+
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+          <h4 class="mb-1">Productos</h4>
+          <small class="text-muted">Administra tu inventario: códigos, precios y stock.</small>
+        </div>
+
+        <div class="d-flex gap-2">
+          <a href="{% url 'producto_crear' %}" class="btn btn-primary btn-icon">
+            <i class="fa-solid fa-plus"></i> Nuevo producto
+          </a>
+        </div>
+      </div>
+
+      <!-- FILTROS -->
+      <div class="d-flex flex-wrap gap-2 mb-3 filtros">
+        <button id="btnActivos" class="btn btn-outline-success btn-sm" type="button" onclick="filtroActivos()">Activos</button>
+        {% if request.user.is_superuser %}
+        <button id="btnInactivos" class="btn btn-outline-secondary btn-sm"
+                type="button" onclick="filtroInactivos()">
+            Inactivos
+        </button>
+        {% endif %}
+        <button id="btnBajo" class="btn btn-outline-warning btn-sm" type="button" onclick="filtroBajoStock(5)">Bajo stock (&lt; 5)</button>
+        <button id="btnSinStock" class="btn btn-outline-danger btn-sm" type="button" onclick="filtroSinStock()">Sin stock (= 0)</button>
+      </div>
+      <div class="gap-2 mb-2" id="accionesExtra" style="display:none;">
+       
+
+        <button class="btn btn-outline-primary btn-sm" onclick="imprimirLista()">
+          <i class="fa-solid fa-print"></i> Imprimir
+        </button>
+      </div>
+
+      <div class="table-responsive dt-container">
+        <table id="tablaProductos" class="table table-hover tabla-compacta">
+          <thead class="table-light">
+            <tr>
+              <!---s <th style="width:70px;">ID</th> -->
+              <th>Producto</th>
+              <th style="width:180px;">Código</th>
+              <th style="width:140px;">Precio</th>
+              <th style="width:140px;">Stock</th>
+              <th style="width:120px;">Estado</th>
+              <th style="width:170px;" class="text-center">Acciones</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for p in productos %}
+            <tr>
+              <!--<td class="text-muted">#{{ p.id }}</td>-->
+
+              <td>
+                <div class="fw-semibold">{{ p.nombre }}</div>
+                <small class="text-muted">Última act.: {{ p.actualizado_en|date:"d/m/Y H:i" }}</small>
+              </td>
+
+              <td><span class="code-pill">{{ p.codigo_barras }}</span></td>
+
+              <td class="fw-semibold">${{ p.precio }}</td>
+
+              <!-- STOCK (con data-stock para filtrar) -->
+              <td data-stock="{{ p.stock }}">
+                {% if p.stock <= 0 %}
+                  <span class="chip chip-off">Sin stock</span>
+                {% elif p.stock < 5 %}
+                  <span class="chip" style="background:#fff4e5;color:#7a4b00;border:1px solid #ffd8a8;">
+                     {{ p.stock|floatformat:0 }}
+                  </span>
+                {% else %}
+                  <span class="chip chip-ok">{{ p.stock|floatformat:0 }}</span>
+                {% endif %}
+              </td>
+
+              <!-- ESTADO (con data-estado para filtrar) -->
+              <td data-estado="{% if p.activo %}activo{% else %}inactivo{% endif %}">
+                {% if p.activo %}
+                  <span class="chip chip-ok">Activo</span>
+                {% else %}
+                  <span class="chip chip-off">Inactivo</span>
+                {% endif %}
+              </td>
+
+              <td class="text-center">
+                <div class="acciones">
+
+                  {% if p.activo %}
+                    <!-- 🔥 ACTIVOS -->
+                    <a href="{% url 'producto_editar' p.id %}" class="btn btn-sm btn-warning btn-icon">
+                      <i class="fa-solid fa-pen"></i> Editar
+                    </a>
+
+                    <form id="formEliminar{{ p.id }}" action="{% url 'producto_eliminar' p.id %}" method="post" class="d-inline">
+                      {% csrf_token %}
+                      <button type="button" class="btn btn-sm btn-danger btn-icon"
+                              onclick="confirmarEliminar({{ p.id }}, '{{ p.nombre|escapejs }}')">
+                        <i class="fa-solid fa-trash"></i> Eliminar
+                      </button>
+                    </form>
+
+                  {% else %}
+                    <!-- 🔥 INACTIVOS -->
+                    <form id="formRestaurar{{ p.id }}" action="{% url 'producto_restaurar' p.id %}" method="post" class="d-inline">
+                      {% csrf_token %}
+                      <button type="button" class="btn btn-sm btn-success btn-icon"
+                              onclick="confirmarRestaurar({{ p.id }}, '{{ p.nombre|escapejs }}')">
+                        <i class="fa-solid fa-rotate-left"></i> Restaurar
+                      </button>
+                    </form>
+                  {% endif %}
+
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="text-center text-muted py-4">
+                No hay productos registrados todavía.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  let tabla;
+    function toggleAccionesExtra(mostrar){
+    const el = document.getElementById("accionesExtra");
+    if(!el) return;
+
+    el.style.display = mostrar ? "flex" : "none";
+  }
+  function activarBoton(id){
+    document.querySelectorAll('.filtros button').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById(id);
+    if(btn) btn.classList.add('active');
+  }
+
+  // Filtros custom DataTables
+  $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+    if (!tabla) return true;
+
+    const fila = tabla.row(dataIndex).node();
+    const stock = parseFloat($(fila).find('td[data-stock]').attr('data-stock')) || 0;
+    const estado = ($(fila).find('td[data-estado]').attr('data-estado') || '').toLowerCase();
+
+    if (window.__filtro_estado) {
+      if (estado !== window.__filtro_estado) return false;
+    }
+    if (window.__filtro_sinstock === true) {
+      if (stock !== 0) return false;
+      if (estado !== "activo") return false;
+    }
+    if (window.__filtro_bajostock_val != null) {
+      if (!(stock > 0 && stock < window.__filtro_bajostock_val)) return false;
+      if ( estado !== "activo") return false;
+    }
+    return true;
+  });
+
+  $(document).ready(function() {
+    tabla = $('#tablaProductos').DataTable({
+      pageLength: 10,
+      order: [[0, 'desc']],
+      language: { url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json" }
+    });
+    toggleAccionesExtra(false);
+    filtroActivos(); // inicia en "Todos"
+  });
+
+  function limpiarFiltros() {
+    window.__filtro_estado = null;
+    window.__filtro_sinstock = false;
+    window.__filtro_bajostock_val = null;
+  }
+
+  function filtroTodos() {
+    limpiarFiltros();
+    activarBoton('btnTodos');
+    toggleAccionesExtra(false);
+    tabla.draw();
+  }
+
+  function filtroActivos() {
+    limpiarFiltros();
+    window.__filtro_estado = "activo";
+    activarBoton('btnActivos');
+    toggleAccionesExtra(false);
+    tabla.draw();
+  }
+
+  function filtroInactivos() {
+    limpiarFiltros();
+    window.__filtro_estado = "inactivo";
+    activarBoton('btnInactivos');
+    toggleAccionesExtra(false);
+    tabla.draw();
+  }
+
+  function filtroSinStock() {
+    limpiarFiltros();
+    window.__filtro_sinstock = true;
+    activarBoton('btnSinStock');
+    toggleAccionesExtra(true);
+    tabla.draw();
+  }
+
+  function filtroBajoStock(valor) {
+    limpiarFiltros();
+    window.__filtro_bajostock_val = valor;
+    activarBoton('btnBajo');
+    toggleAccionesExtra(false);
+    tabla.draw();
+  }
+
+  function confirmarEliminar(id, nombre){
+    Swal.fire({
+      title: 'Confirmar eliminación',
+      icon: 'warning',
+      html: `
+        <div style="font-size:14px">
+          Vas a eliminar:<br>
+          <b style="font-size:16px">${nombre}</b><br><br>
+          <span style="color:#dc3545">Esta acción no se puede deshacer.</span>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: '<i class="fa-solid fa-trash"></i> Eliminar',
+      cancelButtonText: '<i class="fa-solid fa-xmark"></i> Cancelar',
+      reverseButtons: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        document.getElementById('formEliminar' + id).submit();
+      }
+    });
+  }
+ 
+  function confirmarRestaurar(id, nombre){
+    Swal.fire({
+      title: 'Restaurar producto',
+      icon: 'question',
+      html: `
+        <div style="font-size:14px">
+          Vas a restaurar:<br>
+          <b style="font-size:16px">${nombre}</b><br><br>
+          <span style="color:#198754">El producto volverá a estar activo.</span>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: '<i class="fa-solid fa-rotate-left"></i> Sí, restaurar',
+      cancelButtonText: '<i class="fa-solid fa-xmark"></i> Cancelar',
+      reverseButtons: true,
+      confirmButtonColor: '#198754',
+      cancelButtonColor: '#6c757d'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        document.getElementById('formRestaurar' + id).submit();
+      }
+    });
+  }
+  function imprimirLista() {
+    let contenido = "<h3>Productos sin stock</h3><ul>";
+
+    tabla.rows({ filter: 'applied' }).every(function() {
+      let fila = this.node();
+      let nombre = fila.children[0].querySelector('.fw-semibold').innerText.trim();
+
+      contenido += `<li>${nombre}</li>`;
+    });
+
+    contenido += "</ul>";
+
+    let win = window.open('', '', 'height=700,width=900');
+    win.document.write(contenido);
+    win.document.close();
+    win.print();
+  }
+
+</script>
+{% endblock %}

@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block titulo %}Ventas{% endblock %}
+{% block contenido %}
+
+<div class="container-fluid">
+  <div class="card">
+    <div class="card-body">
+
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+          <h4 class="mb-1">Ventas</h4>
+          <small class="text-muted">Filtra automáticamente por fecha, búsqueda y cobro.</small>
+        </div>
+        <a class="btn btn-primary" href="{% url 'venta_nueva' %}">
+          <i class="fa-solid fa-plus"></i> Nueva venta
+        </a>
+      </div>
+
+      <form id="filtrosForm" class="row g-2 mb-3" method="get" autocomplete="off">
+        <div class="col-md-3">
+          <label class="form-label mb-1">Fecha</label>
+          <input id="fechaInput" type="date" class="form-control" name="fecha" value="{{ fecha }}">
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label mb-1">Buscar</label>
+          <input id="qInput" class="form-control" name="q" value="{{ q }}"
+                 placeholder="Comprobante, cliente o celular...">
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label mb-1">Cobro</label>
+          <select id="cobroSelect" class="form-select" name="cobro">
+            <option value="TODOS" {% if cobro == "TODOS" %}selected{% endif %}>Todos</option>
+
+            <option value="FIADOS" {% if cobro == "FIADOS" %}selected{% endif %}>Solo fiados</option>
+            <option value="CONTADO" {% if cobro == "CONTADO" %}selected{% endif %}>Solo contado</option>
+
+            <option value="PENDIENTE" {% if cobro == "PENDIENTE" %}selected{% endif %}>Fiados pendientes</option>
+            <option value="PARCIAL" {% if cobro == "PARCIAL" %}selected{% endif %}>Fiados parciales</option>
+            <option value="COBRADO" {% if cobro == "COBRADO" %}selected{% endif %}>Fiados cobrados</option>
+          </select>
+        </div>
+
+        <div class="col-md-2 d-flex align-items-end">
+         <a href="{% url 'ventas_lista' %}?fecha={{ today|date:'Y-m-d' }}" class="btn btn-outline-primary">
+            Hoy
+          </a>
+          <a href="{% url 'ventas_lista' %}" class="btn btn-outline-secondary w-100">
+            Limpiar
+          </a>
+        </div>
+      </form>
+
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead class="table-light">
+            <tr>
+              <th>Fecha</th>
+              <th>Comprobante</th>
+              <th>Cliente</th>
+              <th>Tipo</th>
+              <th>Estado</th>
+              <th class="text-end">Total</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for v in ventas %}
+              <tr>
+                <td>{{ v.creado_en|date:"d/m/Y H:i" }}</td>
+                <td class="fw-semibold">{{ v.comprobante }}</td>
+
+                <td>
+                  {% if v.cliente %}
+                    {{ v.cliente.nombres_apellidos }}
+                    {% if v.cliente.celular %}
+                      <small class="text-muted">({{ v.cliente.celular }})</small>
+                    {% endif %}
+                  {% else %}
+                    <span class="text-muted">Consumidor final</span>
+                  {% endif %}
+                </td>
+
+                <td>
+                  {% if v.tipo_pago == "FIADO" %}
+                    <span class="badge bg-warning text-dark">FIADO</span>
+                  {% else %}
+                    <span class="badge bg-primary">CONTADO</span>
+                  {% endif %}
+                </td>
+
+                <td>
+                  {% if v.tipo_pago == "CONTADO" %}
+                    <span class="badge bg-success">Pagada</span>
+                  {% else %}
+                    {% if v.estado_cobro == "PENDIENTE" %}
+                      <span class="badge bg-secondary">Pendiente</span>
+                    {% elif v.estado_cobro == "PARCIAL" %}
+                      <span class="badge bg-warning text-dark">Parcial</span>
+                    {% else %}
+                      <span class="badge bg-success">Cobrado</span>
+                    {% endif %}
+                  {% endif %}
+                </td>
+
+                <td class="text-end fw-semibold">${{ v.total }}</td>
+
+                <td class="text-center">
+                  <a class="btn btn-sm btn-outline-primary" href="{% url 'venta_detalle' v.id %}">
+                    Ver
+                  </a>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="7" class="text-center text-muted py-4">
+                  No hay ventas para los filtros seleccionados.
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <div class="d-flex justify-content-center mt-3">
+          <nav>
+            <ul class="pagination">
+
+              {% if ventas.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?page=1&fecha={{ fecha }}&q={{ q }}&cobro={{ cobro }}">&laquo;</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ ventas.previous_page_number }}&fecha={{ fecha }}&q={{ q }}&cobro={{ cobro }}">Anterior</a>
+                </li>
+              {% endif %}
+
+              <li class="page-item active">
+                <span class="page-link">
+                  Página {{ ventas.number }} de {{ ventas.paginator.num_pages }}
+                </span>
+              </li>
+
+              {% if ventas.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ ventas.next_page_number }}&&fecha={{ fecha|default:'' }}&q={{ q }}&cobro={{ cobro }}">
+                    Siguiente
+                  </a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ ventas.paginator.num_pages }}&fecha={{ fecha }}&q={{ q }}&cobro={{ cobro }}">&raquo;</a>
+                </li>
+              {% endif %}
+
+            </ul>
+          </nav>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  const form = document.getElementById("filtrosForm");
+  const fechaInput = document.getElementById("fechaInput");
+  const qInput = document.getElementById("qInput");
+  const cobroSelect = document.getElementById("cobroSelect");
+
+  // Fecha => submit al cambiar
+  fechaInput.addEventListener("change", () => form.submit());
+
+  // Select cobro => submit al cambiar
+  cobroSelect.addEventListener("change", () => form.submit());
+
+  // Buscar => debounce
+  let t = null;
+  qInput.addEventListener("input", () => {
+    clearTimeout(t);
+    t = setTimeout(() => form.submit(), 450);
+  });
+
+  // Enter => submit inmediato
+  qInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      form.submit();
+    }
+  });
+</script>
+
+{% endblock %}

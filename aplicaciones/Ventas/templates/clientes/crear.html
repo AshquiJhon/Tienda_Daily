@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% block titulo %}Nuevo Cliente{% endblock %}
+{% block contenido %}
+
+<div class="container-fluid">
+  <div class="card w-100 h-100 position-relative overflow-hidden">
+    <div class="container d-flex justify-content-center mt-5">
+      <div class="card shadow-sm w-75">
+        <div class="card-header text-white text-center" style="background:#0d6efd;">
+          <h3 class="mb-0">Registro de Cliente</h3>
+        </div>
+
+        <div class="card-body">
+          <form id="formCliente" action="{% url 'cliente_guardar' %}" method="post" novalidate>
+            {% csrf_token %}
+
+            <div class="mb-3">
+              <label class="form-label"><b>Nombres y apellidos</b></label>
+              <input type="text" name="txt_nombres" id="txt_nombres" class="form-control" maxlength="200">
+              <div class="invalid-feedback">Ingresa nombres y apellidos.</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label"><b>Celular (opcional)</b></label>
+              <input type="text" name="txt_celular" id="txt_celular" class="form-control"
+                     maxlength="20">
+              <div class="invalid-feedback">Si ingresas celular, debe tener mínimo 10 dígitos.</div>
+              <small class="text-muted">Puedes dejarlo vacío si el cliente no tiene celular.</small>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label"><b>Dirección</b></label>
+              <input type="text" name="txt_direccion" id="txt_direccion" class="form-control" maxlength="255">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label"><b>Correo (opcional)</b></label>
+              <input type="email" name="txt_correo" id="txt_correo" class="form-control" maxlength="254" placeholder="cliente@email.com">
+              <div class="invalid-feedback">Ingresa un correo válido.</div>
+            </div>
+
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" value="1" id="chk_activo" name="chk_activo" checked>
+              <label class="form-check-label" for="chk_activo">Activo</label>
+            </div>
+
+            <div class="d-flex justify-content-center gap-3 mt-4">
+              <button type="submit" class="btn btn-success px-4">Guardar Cliente</button>
+              <a href="{% url 'clientes_lista' %}" class="btn btn-secondary px-4">Cancelar</a>
+            </div>
+
+          </form>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const form = document.getElementById("formCliente");
+
+  function setInvalid(id){ document.getElementById(id).classList.add("is-invalid"); }
+  function setValid(id){ document.getElementById(id).classList.remove("is-invalid"); }
+
+  ["txt_nombres","txt_celular","txt_correo"].forEach(id=>{
+    const el = document.getElementById(id);
+    el.addEventListener("input", ()=> setValid(id));
+    el.addEventListener("change", ()=> setValid(id));
+  });
+
+  function celularValido(v){
+    const digits = v.replace(/\D/g,'');
+    return digits.length >= 10;
+  }
+
+  form.addEventListener("submit", function(e){
+    e.preventDefault();
+
+    let ok = true;
+
+    const nombres = document.getElementById("txt_nombres").value.trim();
+    const cel = document.getElementById("txt_celular").value.trim();
+    const correo = document.getElementById("txt_correo").value.trim();
+
+    if(!nombres){ setInvalid("txt_nombres"); ok = false; }
+
+    // celular opcional: solo validar si lo llenan
+    if(cel && !celularValido(cel)){ setInvalid("txt_celular"); ok = false; }
+
+    // correo opcional: solo validar si lo llenan
+    if(correo && !document.getElementById("txt_correo").checkValidity()){
+      setInvalid("txt_correo"); ok = false;
+    }
+
+    if(ok) form.submit();
+  });
+</script>
+
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block titulo %}Editar Cliente{% endblock %}
+
+{% block contenido %}
+<div class="container-fluid">
+  <div class="card w-100 h-100 position-relative overflow-hidden">
+    <div class="container d-flex justify-content-center mt-5">
+      <div class="card shadow-sm w-75">
+
+        <!-- HEADER -->
+        <div class="card-header text-white text-center" style="background:#0d6efd;">
+          <h3 class="mb-0">Editar Cliente</h3>
+        </div>
+
+        <!-- BODY -->
+        <div class="card-body">
+
+          <form action="{% url 'cliente_actualizar' cliente.id %}" method="post">
+            {% csrf_token %}
+
+            <!-- NOMBRES -->
+            <div class="mb-3">
+              <label for="txt_nombres" class="form-label"><b>Nombres y Apellidos</b></label>
+              <input type="text"
+                     name="txt_nombres"
+                     id="txt_nombres"
+                     class="form-control"
+                     required
+                     value="{{ cliente.nombres_apellidos|default:'' }}">
+            </div>
+
+            <!-- CELULAR -->
+            <div class="mb-3">
+              <label for="txt_celular" class="form-label"><b>Celular</b></label>
+              <input type="text"
+                     name="txt_celular"
+                     id="txt_celular"
+                     class="form-control"
+                     value="{{ cliente.celular|default:'' }}"
+                     >
+            </div>
+
+            <!-- DIRECCIÓN -->
+            <div class="mb-3">
+              <label for="txt_direccion" class="form-label"><b>Dirección</b></label>
+              <input type="text"
+                     name="txt_direccion"
+                     id="txt_direccion"
+                     class="form-control"
+                     value="{{ cliente.direccion|default:'' }}">
+            </div>
+
+            <!-- CORREO -->
+            <div class="mb-3">
+              <label for="txt_correo" class="form-label"><b>Correo</b></label>
+              <input type="email"
+                     name="txt_correo"
+                     id="txt_correo"
+                     class="form-control"
+                     value="{{ cliente.correo|default:'' }}"
+                     >
+            </div>
+
+            <!-- ESTADO -->
+            <div class="form-check mb-3">
+              <input class="form-check-input"
+                     type="checkbox"
+                     value="1"
+                     id="chk_activo"
+                     name="chk_activo"
+                     {% if cliente.activo %}checked{% endif %}>
+              <label class="form-check-label" for="chk_activo">
+                Cliente activo
+              </label>
+            </div>
+
+            <!-- BOTONES -->
+            <div class="d-flex justify-content-center gap-3 mt-4">
+              <button type="submit" class="btn btn-success px-4">
+                <i class="fa-solid fa-save"></i> Guardar Cambios
+              </button>
+
+              <a href="{% url 'clientes_lista' %}" class="btn btn-secondary px-4">
+                Cancelar
+              </a>
+            </div>
+
+          </form>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

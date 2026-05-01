@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block titulo %}Clientes{% endblock %}
+{% block contenido %}
+
+<style>
+  .tabla-compacta td, .tabla-compacta th { padding: .55rem .75rem !important; vertical-align: middle; }
+  .chip { padding: .25rem .55rem; border-radius: 999px; font-size: .80rem; font-weight: 600; display:inline-block; }
+  .chip-ok { background: #e8fff3; color: #0f5132; border: 1px solid #b7f0d0; }
+  .chip-off { background: #f1f3f5; color: #495057; border: 1px solid #dee2e6; }
+  .acciones { display: flex; gap: .4rem; justify-content: center; }
+  .btn-icon { display:inline-flex; align-items:center; gap:.35rem; }
+</style>
+
+<div class="container-fluid">
+  <div class="card">
+    <div class="card-body">
+
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+          <h4 class="mb-1">Clientes</h4>
+          <small class="text-muted">Registra datos del cliente (celular opcional).</small>
+        </div>
+
+        <div class="d-flex gap-2">
+          <a href="{% url 'cliente_crear' %}" class="btn btn-primary btn-icon">
+            <i class="fa-solid fa-plus"></i> Nuevo cliente
+          </a>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table id="tablaClientes" class="table table-hover tabla-compacta">
+          <thead class="table-light">
+            <tr>
+              <!--<th style="width:70px;">ID</th>-->
+              <th>Cliente</th>
+              <th style="width:160px;">Celular</th>
+              <th>Dirección</th>
+              <th>Correo</th>
+              <th style="width:120px;">Estado</th>
+              <th style="width:170px;" class="text-center">Acciones</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for c in clientes %}
+            <tr>
+              <!--<td class="text-muted">#{{ c.id }}</td>-->
+              <td class="fw-semibold">{{ c.nombres_apellidos }}</td>
+              <td>{{ c.celular|default:"-" }}</td>
+              <td>{{ c.direccion|default:"-" }}</td>
+              <td>{{ c.correo|default:"-" }}</td>
+              <td>
+                {% if c.activo %}
+                  <span class="chip chip-ok">Activo</span>
+                {% else %}
+                  <span class="chip chip-off">Inactivo</span>
+                {% endif %}
+              </td>
+
+              <td class="text-center">
+  <div class="acciones">
+
+    {% if c.activo %}
+      <!-- 🔥 ACTIVOS -->
+      <a href="{% url 'cliente_editar' c.id %}" class="btn btn-sm btn-warning btn-icon">
+        <i class="fa-solid fa-pen"></i> Editar
+      </a>
+
+      <form id="formEliminarC{{ c.id }}" action="{% url 'cliente_eliminar' c.id %}" method="post" class="d-inline">
+        {% csrf_token %}
+        <button type="button" class="btn btn-sm btn-danger btn-icon"
+                onclick="confirmarEliminarCliente({{ c.id }}, '{{ c.nombres_apellidos|escapejs }}')">
+          <i class="fa-solid fa-trash"></i> Eliminar
+        </button>
+      </form>
+
+    {% else %}
+      <!-- 🔥 INACTIVOS -->
+      <form id="formRestaurarC{{ c.id }}" action="{% url 'cliente_restaurar' c.id %}" method="post" class="d-inline">
+        {% csrf_token %}
+        <button type="button" class="btn btn-sm btn-success btn-icon"
+                onclick="confirmarRestaurarCliente({{ c.id }}, '{{ c.nombres_apellidos|escapejs }}')">
+          <i class="fa-solid fa-rotate-left"></i> Restaurar
+        </button>
+      </form>
+    {% endif %}
+
+  </div>
+</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6" class="text-center text-muted py-4">No hay clientes registrados.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  $(document).ready(function() {
+    if ($('#tablaClientes').length) {
+      $('#tablaClientes').DataTable({
+        pageLength: 10,
+        order: [[0, 'desc']],
+        language: { url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json" }
+      });
+    }
+  });
+
+  function confirmarEliminarCliente(id, nombre){
+    Swal.fire({
+      title: '¿Eliminar cliente?',
+      icon: 'warning',
+      html: `<b>${nombre}</b><br><small>Esta acción no se puede deshacer.</small>`,
+      showCancelButton: true,
+      confirmButtonText: 'Eliminar',
+      cancelButtonText: 'Cancelar',
+      reverseButtons: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d'
+    }).then((r) => {
+      if (r.isConfirmed) document.getElementById('formEliminarC'+id).submit();
+    });
+  }
+  function confirmarRestaurarCliente(id, nombre){
+  Swal.fire({
+    title: 'Restaurar cliente',
+    icon: 'question',
+    html: `<b>${nombre}</b><br><small>El cliente volverá a estar activo.</small>`,
+    showCancelButton: true,
+    confirmButtonText: 'Restaurar',
+    cancelButtonText: 'Cancelar',
+    reverseButtons: true,
+    confirmButtonColor: '#198754',
+    cancelButtonColor: '#6c757d'
+  }).then((r) => {
+    if (r.isConfirmed) document.getElementById('formRestaurarC'+id).submit();
+  });
+}
+</script>
+
+{% endblock %}

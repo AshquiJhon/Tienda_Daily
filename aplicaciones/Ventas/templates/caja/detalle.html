@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block titulo %}Detalle de Cierre{% endblock %}
+{% block contenido %}
+
+<style>
+  .kpi { border:1px solid #e9ecef; border-radius: 14px; padding:14px; background:#fff; }
+  .kpi .lbl { color:#6c757d; font-size:.9rem; }
+  .kpi .val { font-weight:900; font-size: 22px; }
+</style>
+
+<div class="container-fluid">
+  <div class="card">
+    <div class="card-body">
+
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+          <h4 class="mb-1">Cierre de caja: {{ cierre.fecha|date:"d/m/Y" }}</h4>
+          <small class="text-muted">
+            Rango: {{ cierre.abierto_desde|date:"d/m/Y H:i" }} → {{ cierre.cerrado_en|date:"d/m/Y H:i" }}
+          </small>
+        </div>
+
+        <div class="d-flex gap-2">
+          <a class="btn btn-outline-secondary" href="{% url 'caja_historial' %}">Historial</a>
+          <button class="btn btn-outline-secondary" onclick="window.print()">Imprimir</button>
+        </div>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-md-4">
+          <div class="kpi">
+            <div class="lbl">Ventas contado</div>
+            <div class="val">${{ cierre.total_ventas_contado }}</div>
+            <div class="text-muted">{{ cierre.num_ventas_contado }} ventas</div>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="kpi">
+            <div class="lbl">Abonos de fiados</div>
+            <div class="val">${{ cierre.total_abonos_fiado }}</div>
+            <div class="text-muted">{{ cierre.num_abonos_fiado }} abonos</div>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="kpi">
+            <div class="lbl">Total ingresos</div>
+            <div class="val">${{ cierre.total_ingresos }}</div>
+            <div class="text-muted">Usuario: {{ cierre.usuario.username }}</div>
+          </div>
+        </div>
+      </div>
+
+      {% if cierre.nota %}
+        <div class="alert alert-info mt-3">
+          <b>Nota:</b> {{ cierre.nota }}
+        </div>
+      {% endif %}
+
+      <div class="mt-3 text-muted">
+        * Este cierre no incluye ventas FIADAS como ingreso (solo contado). Si hubo cobros/abonos de fiados, aparecen como “Abonos de fiados”.
+      </div>
+
+    </div>
+  </div>
+</div>
+<script>
+  const urlParams = new URLSearchParams(window.location.search);
+
+  if (urlParams.get("descargar") === "1") {
+    window.open("{% url 'backup_fiados' %}", "_blank");
+  }
+</script>
+{% endblock %}

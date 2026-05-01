@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+{% block titulo %}Nueva Venta{% endblock %}
+{% block contenido %}
+
+<style>
+  
+  .code-input { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  .tabla-compacta td, .tabla-compacta th { padding: .55rem .75rem !important; vertical-align: middle; }
+  .acciones { display:flex; gap:.35rem; justify-content:center; }
+
+  .msg-box { display:none; }
+  .msg-box.show { display:block; }
+
+  .resultados-box{
+    position:absolute; left:0; right:0;
+    z-index:999;
+    display:none;
+    max-height:260px;
+    overflow:auto;
+    border-radius: .75rem;
+  }
+
+  .pill { padding:.2rem .55rem; border-radius:999px; font-size:.80rem; font-weight:700; }
+  .pill-stock { background:#f1f3f5; border:1px solid #dee2e6; color:#495057; }
+  
+</style>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<div class="container-fluid">
+  <div class="card">
+    <div class="card-body">
+
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+          <h4 class="mb-1">Nueva Venta</h4>
+          <small class="text-muted">Escanea el código de barras o búscalo manualmente y arma el carrito.</small>
+        </div>
+      </div>
+
+      <!-- MENSAJE BONITO -->
+      <div id="msgBox" class="alert msg-box" role="alert"></div>
+
+      <form id="formVenta" action="{% url 'venta_guardar' %}" method="post" novalidate>
+        {% csrf_token %}
+
+        <div class="row g-3 mb-3">
+
+          <!-- Escáner -->
+          <div class="col-md-4">
+            <label class="form-label"><b>Código de barras</b></label>
+            <input id="codigoInput" type="text" class="form-control code-input" placeholder="Escanea aquí...">
+            <small class="text-muted">Tip: el escáner escribe y presiona Enter.</small>
+          </div>
+
+          <!-- Manual -->
+          <div class="col-md-4">
+            <label class="form-label"><b>Buscar producto (manual)</b></label>
+            <div class="position-relative">
+              <input id="buscarInput" type="text" class="form-control" placeholder="Escribe nombre o código...">
+              <div id="resultadosBox" class="list-group shadow resultados-box"></div>
+            </div>
+            <small class="text-muted">Escribe mínimo 2 letras.</small>
+          </div>
+
+          <!-- Tipo pago -->
+          <div class="col-md-4">
+            <label class="form-label"><b>Tipo de pago</b></label>
+            <select class="form-select" name="tipo_pago" id="tipoPago">
+              <option value="CONTADO" selected>Contado</option>
+              <option value="FIADO">Fiado</option>
+            </select>
+          </div>
+
+          <!-- Cliente (AHORA SIEMPRE HABILITADO) -->
+          <div class="col-md-4">
+            <label class="form-label"><b>Cliente (opcional)</b></label>
+            <select class="form-select" name="cliente_id" id="clienteSelect">
+              <option value="">Elige el cliente</option>
+              {% for c in clientes %}
+                <option value="{{ c.id }}">
+                  {{ c.nombres_apellidos }} {% if c.celular %}({{ c.celular }}){% endif %}
+                </option>
+              {% endfor %}
+            </select>
+            <small class="text-muted">En contado es opcional. En fiado es obligatorio.</small>
+          </div>
+
+         
+
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-hover tabla-compacta" id="tablaCarrito">
+            <thead class="table-light">
+              <tr>
+                <th>Producto</th>
+                <th style="width:140px;">Precio</th>
+                <th style="width:170px;">Cantidad</th>
+                <th style="width:140px;">Subtotal</th>
+                <th style="width:120px;" class="text-center">Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- items JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="d-flex justify-content-end mt-3">
+          <div class="text-end">
+            <div class="text-muted">TOTAL</div>
+            <div style="font-size:28px;font-weight:800; color: red;" id="totalTxt">$0.00</div>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mt-3">
+          <button type="button" class="btn btn-outline-secondary" onclick="limpiarCarrito()">Limpiar</button>
+          <button type="submit" class="btn btn-success">Guardar Venta</button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+    $('#clienteSelect').select2({
+      placeholder: "Buscar cliente...",
+      allowClear: true,
+      width: '100%'
+    });
+  });
+  // ========= Mensajes =========
+  const msgBox = document.getElementById("msgBox");
+  function showMsg(tipo, texto){
+    msgBox.className = `alert msg-box show alert-${tipo}`;
+    msgBox.textContent = texto;
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  }
+  function clearMsg(){
+    msgBox.className = "alert msg-box";
+    msgBox.textContent = "";
+  }
+  function escapeHtml(str){
+    return (str || "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  // ========= Carrito =========
+  const carrito = []; // {id,nombre,precio,stock,cant}
+
+  const codigoInput = document.getElementById("codigoInput");
+  const tbody = document.querySelector("#tablaCarrito tbody");
+  const totalTxt = document.getElementById("totalTxt");
+
+  const tipoPago = document.getElementById("tipoPago");
+  const clienteSelect = document.getElementById("clienteSelect");
+  const boxVenc = document.getElementById("boxVenc");
+
+  // Solo mostrar vencimiento si FIADO (cliente ya NO se deshabilita)
+  tipoPago.addEventListener("change", () => {
+    const fiado = tipoPago.value === "FIADO";
+    boxVenc.style.display = fiado ? "block" : "none";
+  });
+
+  // ========= Escáner =========
+  codigoInput.addEventListener("keydown", async (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      clearMsg();
+      const codigo = codigoInput.value.trim();
+      if(!codigo) return;
+      await agregarPorCodigo(codigo);
+      codigoInput.value = "";
+    }
+  });
+
+  async function agregarPorCodigo(codigo){
+    const url = "{% url 'buscar_producto_codigo' %}" + "?codigo=" + encodeURIComponent(codigo);
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if(!data.ok){
+      showMsg("warning", data.msg || "No se encontró el producto.");
+      return;
+    }
+
+    const p = data.producto;
+    agregarConStock(p.id, p.nombre, p.precio, p.stock);
+  }
+
+  function agregarConStock(id, nombre, precio, stock){
+    const st = parseInt(stock || 0);
+
+    if(st <= 0){
+      showMsg("warning", `Sin stock: ${nombre}`);
+      return;
+    }
+
+    const idx = carrito.findIndex(x => x.id == id);
+    if(idx >= 0){
+      if(carrito[idx].cant + 1 > carrito[idx].stock){
+        showMsg("warning", `Stock insuficiente para ${nombre}. Disponible: ${carrito[idx].stock}`);
+        return;
+      }
+      carrito[idx].cant += 1;
+    } else {
+      carrito.push({
+        id: id,
+        nombre: nombre,
+        precio: parseFloat(precio),
+        stock: st,
+        cant: 1
+      });
+    }
+
+    renderCarrito();
+  }
+
+  function renderCarrito(){
+    tbody.innerHTML = "";
+    let total = 0;
+
+    carrito.forEach((it, i) => {
+      const sub = it.precio * it.cant;
+      total += sub;
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>
+          <div class="fw-semibold">${escapeHtml(it.nombre)}</div>
+          <input type="hidden" name="prod_id[]" value="${it.id}">
+        </td>
+
+        <td class="fw-semibold">$${it.precio.toFixed(2)}</td>
+
+        <td>
+          <input type="number"
+                 class="form-control form-control-sm"
+                 name="cant[]"
+                 step="1" min="1" max="${it.stock}"
+                 value="${it.cant}"
+                 onchange="cambiarCant(${i}, this.value)">
+          <small class="text-muted">
+            <span class="pill pill-stock">Stock: ${it.stock}</span>
+          </small>
+        </td>
+
+        <td class="fw-semibold">$${sub.toFixed(2)}</td>
+
+        <td class="text-center">
+          <button type="button" class="btn btn-sm btn-danger" onclick="quitarItem(${i})">Quitar</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    totalTxt.textContent = "$" + total.toFixed(2);
+  }
+
+  function cambiarCant(i, v){
+    if (v === "") {
+      return; // deja escribir libremente
+    }
+
+    let n = parseInt(v);
+    if (isNaN(n) || n < 1) n = 1;
+
+    const stock = parseInt(carrito[i].stock || 0);
+
+    if(n > stock){
+      n = stock;
+      showMsg("warning", `No puedes vender más que el stock. Máximo: ${stock}`);
+    }
+
+    carrito[i].cant = n;
+    renderCarrito();
+  }
+
+  function quitarItem(i){
+    carrito.splice(i, 1);
+    renderCarrito();
+  }
+
+  function limpiarCarrito(){
+    carrito.length = 0;
+    renderCarrito();
+    clearMsg();
+    codigoInput.focus();
+  }
+
+  // ========= Buscar Manual =========
+  const buscarInput = document.getElementById("buscarInput");
+  const resultadosBox = document.getElementById("resultadosBox");
+  let t = null;
+
+  buscarInput.addEventListener("input", () => {
+    clearTimeout(t);
+    const q = buscarInput.value.trim();
+
+    if(q.length < 2){
+      resultadosBox.style.display = "none";
+      resultadosBox.innerHTML = "";
+      return;
+    }
+
+    t = setTimeout(() => buscarManual(q), 250);
+  });
+
+  async function buscarManual(q){
+    const url = "{% url 'buscar_productos' %}" + "?q=" + encodeURIComponent(q);
+    const res = await fetch(url);
+    const data = await res.json();
+
+    const items = (data.results || []);
+    if(items.length === 0){
+      resultadosBox.innerHTML = `<div class="list-group-item text-muted">Sin resultados</div>`;
+      resultadosBox.style.display = "block";
+      return;
+    }
+
+    resultadosBox.innerHTML = items.map(p => `
+      <button type="button" class="list-group-item list-group-item-action"
+              onclick="agregarProductoManual(${p.id}, '${escapeHtml(p.nombre)}', '${p.precio}', '${p.stock}')">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="fw-semibold">${escapeHtml(p.nombre)}</div>
+            <small class="text-muted">Código: ${escapeHtml(p.codigo)} · Stock: ${parseInt(p.stock || 0)}</small>
+          </div>
+          <div class="fw-bold">$${parseFloat(p.precio).toFixed(2)}</div>
+        </div>
+      </button>
+    `).join("");
+
+    resultadosBox.style.display = "block";
+  }
+
+  function agregarProductoManual(id, nombre, precio, stock){
+    clearMsg();
+    agregarConStock(id, nombre, precio, stock);
+    resultadosBox.style.display = "none";
+    resultadosBox.innerHTML = "";
+    buscarInput.value = "";
+    codigoInput.focus();
+  }
+
+  document.addEventListener("click", (e) => {
+    if(!resultadosBox.contains(e.target) && e.target !== buscarInput){
+      resultadosBox.style.display = "none";
+    }
+  });
+
+  // ========= Validación Submit =========
+  document.getElementById("formVenta").addEventListener("submit", (e)=> {
+    clearMsg();
+
+    if(carrito.length === 0){
+      e.preventDefault();
+      showMsg("warning", "Agrega al menos 1 producto para guardar la venta.");
+      return;
+    }
+
+    // SOLO obliga cliente si FIADO
+    if(tipoPago.value === "FIADO" && !clienteSelect.value){
+      e.preventDefault();
+      showMsg("warning", "Selecciona un cliente para ventas FIADAS.");
+      return;
+    }
+
+    for(const it of carrito){
+      if(it.cant > it.stock){
+        e.preventDefault();
+        showMsg("warning", `Stock insuficiente para ${it.nombre}. Disponible: ${it.stock}`);
+        return;
+      }
+      if(it.cant < 1){
+        e.preventDefault();
+        showMsg("warning", `Cantidad inválida en ${it.nombre}.`);
+        return;
+      }
+    }
+  });
+</script>
+
+{% endblock %}

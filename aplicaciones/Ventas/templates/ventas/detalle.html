@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% load static %}
+{% block titulo %}Ticket Venta{% endblock %}
+{% block contenido %}
+
+<style>
+
+  /* ===== VISTA NORMAL (PANTALLA GRANDE) ===== */
+  .ticket {
+    width: 100%;
+    max-width: 900px;
+    margin: auto;
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+  }
+
+  .center { text-align: center; }
+  .bold { font-weight: bold; }
+
+  .small {
+    font-size: 14px;
+    line-height: 1.3;
+  }
+
+  .line {
+    border-top: 1px dashed #000;
+    margin: 8px 0;
+  }
+
+  .row-ticket {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* ===== IMPRESIÓN (TICKET REAL) ===== */
+  @media print {
+
+    body * {
+      visibility: hidden;
+    }
+
+    .ticket, .ticket * {
+      visibility: visible;
+    }
+
+    .ticket {
+      width: 280px;
+      max-width: 280px;
+      padding: 10px;
+      font-size: 12px;
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+
+    .small {
+      font-size: 12px;
+    }
+
+    .no-print {
+      display: none !important;
+    }
+  }
+
+</style>
+
+<div class="container py-4">
+
+  <div class="ticket shadow-sm">
+
+    <!-- LOGO -->
+    <div class="center mb-2">
+      <img src="{% static 'plantilla/src/assets/images/logos/logo_principal.jpeg' %}" style="max-width:80px;">
+    </div>
+
+    <!-- NOMBRE -->
+    <div class="center bold small">
+      TIENDA BAZAR DAILY
+    </div>
+
+    <!-- INFO -->
+    <div class="center small">
+      {{ venta.comprobante }}<br>
+      {{ venta.creado_en|date:"d/m/Y H:i" }}
+    </div>
+
+    <div class="line"></div>
+
+    <!-- CLIENTE -->
+    <div class="small">
+      <b>Cliente:</b><br>
+      {% if venta.cliente %}
+        {{ venta.cliente.nombres_apellidos }}
+      {% else %}
+        Consumidor final
+      {% endif %}
+    </div>
+
+    <div class="line"></div>
+
+    <!-- ENCABEZADO -->
+    <div class="row-ticket small bold">
+      <span>Cant x Precio</span>
+      <span>Subtotal</span>
+    </div>
+
+    <div class="line"></div>
+
+    <!-- DETALLE -->
+    {% for it in venta.items.all %}
+      <div class="small">
+        {{ it.producto.nombre|truncatechars:40 }}
+      </div>
+
+      <div class="row-ticket small">
+        <span>
+          {{ it.cantidad|floatformat:0 }} x ${{ it.precio_unitario|floatformat:2 }}
+        </span>
+        <span>
+          ${{ it.subtotal_linea|floatformat:2 }}
+        </span>
+      </div>
+    {% endfor %}
+
+    <div class="line"></div>
+
+    <!-- TOTAL -->
+    <div class="row-ticket bold" style="font-size:18px;">
+      <span>TOTAL</span>
+      <span>${{ venta.total|floatformat:2 }}</span>
+    </div>
+
+    <div class="line"></div>
+
+    <!-- MENSAJE -->
+    <div class="center" style="font-size:13px;">
+      Gracias por su compra 🙌
+    </div>
+
+    <div class="center" style="font-size:10px; color:#888; line-height:1.2;">
+      Este documento es un comprobante de venta interno y no tiene validez tributaria. No es una factura.
+    </div>
+
+  </div>
+
+  <!-- BOTÓN -->
+  <div class="text-center mt-4 no-print">
+    <button class="btn btn-dark px-4" onclick="window.print()">
+      🖨️ Imprimir Ticket
+    </button>
+  </div>
+
+</div>
+
+{% endblock %}

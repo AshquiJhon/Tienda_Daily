@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block titulo %}Historial de Caja{% endblock %}
+{% block contenido %}
+
+<style>
+  .tabla-compacta td, .tabla-compacta th { padding: .55rem .75rem !important; vertical-align: middle; }
+  .pill { padding:.2rem .55rem; border-radius:999px; font-size:.80rem; font-weight:700; }
+  .pill-ok { background:#e8fff3; color:#0f5132; border:1px solid #b7f0d0; }
+  .pill-info { background:#eef4ff; color:#1e3a8a; border:1px solid #c7d2fe; }
+</style>
+
+<div class="container-fluid">
+  <div class="card">
+    <div class="card-body">
+
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+
+  <div>
+    <h4 class="mb-1">Historial de caja</h4>
+    <small class="text-muted">Cierres realizados (máximo 1 por día).</small>
+  </div>
+
+  <!-- BOTONES AGRUPADOS -->
+  <div class="d-flex gap-2">
+
+    <a href="{% url 'resumen_caja' %}" class="btn btn-primary">
+      Ir a cierre de hoy
+    </a>
+
+    {% if request.user.is_superuser %}
+      <a class="btn btn-outline-success" href="{% url 'backup_fiados' %}">
+        Excel
+      </a>
+    {% endif %}
+
+  </div>
+
+</div>
+
+      <div class="table-responsive">
+        <table id="tablaCierres" class="table table-hover tabla-compacta">
+          <thead class="table-light">
+            <tr>
+              <th>Fecha</th>
+              {% if request.user.is_superuser %}
+                <th>Rango</th>
+              {% endif %}
+              <th>Ventas contado</th>
+              <th>Abonos fiado</th>
+              <th>Total ingresos</th>
+              {% if request.user.is_superuser %}
+                <th>Usuario</th>
+              {% endif %}
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for c in cierres %}
+            <tr>
+              <td class="fw-semibold" data-order="{{ c.cerrado_en|date:'Y-m-d H:i:s' }}">
+                {{ c.fecha|date:"d/m/Y" }}
+              </td>
+              {% if request.user.is_superuser %}
+                <td class="text-muted">
+                  {{ c.abierto_desde|date:"d/m/Y H:i" }} <b>→</b> {{ c.cerrado_en|date:"d/m/Y H:i" }}
+                </td>
+              {% endif %}  
+              <td>
+                <span class="pill pill-info">{{ c.num_ventas_contado }} ventas</span>
+                <div class="fw-semibold mt-1">${{ c.total_ventas_contado }}</div>
+              </td>
+
+              <td>
+                <span class="pill pill-info">{{ c.num_abonos_fiado }} abonos</span>
+                <div class="fw-semibold mt-1">${{ c.total_abonos_fiado }}</div>
+              </td>
+
+              <td>
+                <span class="pill pill-ok">TOTAL</span>
+                <div style="font-weight:900;font-size:18px;">${{ c.total_ingresos }}</div>
+              </td>
+              {% if request.user.is_superuser %}
+                <td class="text-muted">{{ c.usuario.username }}</td>
+              {% endif %}
+              <td class="text-center">
+                <a class="btn btn-sm btn-outline-primary" href="{% url 'caja_detalle' c.id %}">
+                  Ver
+                </a>
+                
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="text-center text-muted py-4">
+                No hay cierres todavía.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  $(document).ready(function() {
+    $('#tablaCierres').DataTable({
+      pageLength: 10,
+      order: [[0, 'desc']],
+      language: { url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json" }
+    });
+  });
+</script>
+
+{% endblock %}

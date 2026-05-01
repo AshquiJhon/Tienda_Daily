@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block titulo %}Fiados - {{ cliente.nombres_apellidos }}{% endblock %}
+{% block contenido %}
+
+<style>
+  .tabla-compacta td, .tabla-compacta th { 
+    padding: .55rem .75rem !important; 
+    vertical-align: middle; 
+  }
+
+  .chip { 
+    padding: .25rem .55rem; 
+    border-radius: 999px; 
+    font-size: .80rem; 
+    font-weight: 700; 
+    display:inline-block; 
+  }
+
+  .chip-ok { background:#e8fff3; color:#0f5132; border:1px solid #b7f0d0; }
+  .chip-warn { background:#fff4e5; color:#7a4b00; border:1px solid #ffd8a8; }
+  .chip-off { background:#f1f3f5; color:#495057; border:1px solid #dee2e6; }
+
+  .table-responsive {
+    overflow-x: auto;
+  }
+
+  @media (max-width: 768px) {
+    table {
+      min-width: 700px;
+    }
+  }
+
+  @media (max-width: 576px) {
+    .tabla-compacta td, 
+    .tabla-compacta th {
+      font-size: 12px;
+      padding: .4rem;
+    }
+
+    h4 {
+      font-size: 18px;
+    }
+  }
+</style>
+
+<div class="container-fluid">
+  <div class="card">
+    <div class="card-body">
+
+```
+  <!-- HEADER RESPONSIVE -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-3">
+    <div>
+      <h4 class="mb-1">{{ cliente.nombres_apellidos }}</h4>
+      <div class="text-muted">
+        {% if cliente.celular %}{{ cliente.celular }}{% else %}Sin celular{% endif %}
+      </div>
+    </div>
+
+    <div class="text-md-end">
+      <div class="text-muted">Deuda actual</div>
+      <div style="font-weight:900;font-size:26px;" class="{% if deuda_actual > 0 %}text-danger{% else %}text-success{% endif %}">
+        ${{ deuda_actual }}
+      </div>
+      <a href="{% url 'deuda_por_cliente' %}" class="btn btn-outline-secondary btn-sm mt-2">Volver</a>
+    </div>
+  </div>
+
+  <!-- TABLA -->
+  <div class="table-responsive">
+    <table class="table table-hover tabla-compacta">
+      <thead class="table-light">
+        <tr>
+          <th>Comprobante</th>
+          <th style="width:170px;">Fecha</th>
+          <th style="width:120px;" class="d-none d-md-table-cell">Total</th>
+          <th style="width:120px;" class="d-none d-md-table-cell">Pagado</th>
+          <th style="width:120px;">Saldo</th>
+          <th style="width:140px;">Estado</th>
+          <th style="width:220px;">Abonar</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for v in ventas %}
+        <tr>
+          <td class="fw-semibold">{{ v.comprobante }}</td>
+          <td class="text-muted">{{ v.creado_en|date:"d/m/Y H:i" }}</td>
+
+          <!-- oculto en móvil -->
+          <td class="d-none d-md-table-cell">${{ v.total }}</td>
+          <td class="d-none d-md-table-cell">${{ v.total_pagado }}</td>
+
+          <td class="{% if v.saldo > 0 %}text-danger fw-semibold{% else %}text-success fw-semibold{% endif %}">
+            ${{ v.saldo }}
+          </td>
+
+          <td>
+            {% if v.estado_cobro == "COBRADO" %}
+              <span class="chip chip-ok">Pagado</span>
+            {% elif v.estado_cobro == "PARCIAL" %}
+              <span class="chip chip-warn">Parcial</span>
+            {% else %}
+              <span class="chip chip-off">Pendiente</span>
+            {% endif %}
+          </td>
+
+          <td>
+            {% if v.saldo > 0 %}
+            <form class="row g-2 align-items-end" method="post" action="{% url 'fiado_abonar' v.id %}">
+              {% csrf_token %}
+              
+              <div class="col-12 col-md-6">
+                <label class="form-label mb-1"><small>Monto</small></label>
+                <input 
+                  type="number" 
+                  step="0.01" 
+                  min="0.01" 
+                  max="{{ v.saldo }}" 
+                  name="monto" 
+                  class="form-control form-control-sm" 
+                  required>
+              </div>
+
+              <div class="col-12 col-md-6">
+                <button class="btn btn-sm btn-success w-100">Abonar</button>
+              </div>
+            </form>
+            {% else %}
+              <span class="text-success fw-semibold">Sin deuda</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="text-center text-muted py-4">
+            Este cliente no tiene ventas FIADO.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+```
+
+  </div>
+</div>
+
+{% endblock %}

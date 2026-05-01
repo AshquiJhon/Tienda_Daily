@@ -1,0 +1,222 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Sistema de Tienda{% endblock %}</title>
+
+  <link rel="shortcut icon" type="image/png"
+        href="{% static 'plantilla/src/assets/images/logos/seodashlogo.png' %}" />
+
+  <link rel="stylesheet" href="{% static 'plantilla/src/assets/css/styles.min.css' %}" />
+  <link rel="stylesheet" href="{% static 'plantilla/src/assets/cssn/styles.css' %}" />
+
+  <!-- FontAwesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+  <!-- jQuery + DataTables -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  {% block extra_head %}{% endblock %}
+  <style>
+
+  /* BASE */
+  .sidebar-link {
+    border-radius: 10px;
+    margin: 5px 10px;
+    color: white !important;
+    font-weight: 500;
+  }
+
+  /* ICONOS Y TEXTO */
+  .sidebar-link span,
+  .sidebar-link iconify-icon {
+    color: white !important;
+  }
+
+  /* 🎨 COLORES POR SECCIÓN */
+
+  /* PRODUCTOS */
+  .menu-productos {
+    background: linear-gradient(45deg, #2196f3, #1976d2);
+  }
+
+  /* CLIENTES */
+  .menu-clientes {
+    background: linear-gradient(45deg, #4caf50, #2e7d32);
+  }
+
+  /* VENTAS */
+  .menu-ventas {
+    background: linear-gradient(45deg, #ff9800, #ef6c00);
+  }
+
+  /* FIADOS */
+  .menu-fiados {
+    background: linear-gradient(45deg, #f44336, #c62828);
+  }
+
+  /* HISTORIAL */
+  .menu-historial {
+    background: linear-gradient(45deg, #607d8b, #37474f);
+  }
+
+  /* 🔥 EFECTO HOVER SUAVE */
+  .sidebar-link:hover {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+
+  /* 🔥 ITEM ACTIVO (más resaltado) */
+  .sidebar-link.active {
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    transform: scale(1.05);
+  }
+
+  </style>
+</head>
+
+<body>
+  <div class="page-wrapper" id="main-wrapper"
+       data-layout="vertical" data-navbarbg="skin6" data-sidebartype="full"
+       data-sidebar-position="fixed" data-header-position="fixed">
+
+    <!-- Sidebar -->
+    <aside class="left-sidebar">
+      <div>
+        <div class="brand-logo d-flex align-items-center justify-content-between">
+          <a href="{% url 'index' %}" class="text-nowrap logo-img">
+            <img src="{% static 'plantilla/src/assets/images/logos/logo-light.svg' %}" alt="Logo" />
+          </a>
+
+          <div class="close-btn d-xl-none d-block sidebartoggler cursor-pointer" id="sidebarCollapse">
+            <i class="ti ti-x fs-8"></i>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav scroll-sidebar" data-simplebar="">
+          <ul id="sidebarnav">
+
+            <li class="nav-small-cap">
+              <i class="ti ti-dots nav-small-cap-icon fs-6"></i>
+              <span class="hide-menu">MENÚ</span>
+            </li>
+
+            <li class="sidebar-item">
+              <a class="sidebar-link menu-productos" href="{% url 'productos_lista' %}">
+                <span><iconify-icon icon="mdi:package-variant-closed" class="fs-6"></iconify-icon></span>
+                <span class="hide-menu">PRODUCTOS</span>
+              </a>
+            </li>
+
+            <li class="sidebar-item">
+              <a class="sidebar-link menu-clientes" href="{% url 'clientes_lista' %}">
+                <span><iconify-icon icon="mdi:account-group" class="fs-6"></iconify-icon></span>
+                <span class="hide-menu">CLIENTES</span>
+              </a>
+            </li>
+
+            <li class="sidebar-item">
+              <a class="sidebar-link menu-ventas" href="{% url 'ventas_lista' %}">
+                <span><iconify-icon icon="mdi:receipt-text" class="fs-6"></iconify-icon></span>
+                <span class="hide-menu">VENTAS</span>
+              </a>
+            </li>
+
+            <li class="sidebar-item">
+              <a class="sidebar-link menu-fiados" href="{% url 'deuda_por_cliente' %}">
+                <span><iconify-icon icon="mdi:cash-clock" class="fs-6"></iconify-icon></span>
+                <span class="hide-menu">FIADOS</span>
+              </a>
+            </li>
+
+
+            <li class="sidebar-item">
+              <a class="sidebar-link menu-historial" href="{% url 'caja_historial' %}">
+                <span><iconify-icon icon="mdi:history" class="fs-6"></iconify-icon></span>
+                <span class="hide-menu">HISTORIAL CAJA</span>
+              </a>
+            </li>
+
+
+          </ul>
+        </nav>
+      </div>
+    </aside>
+    <!-- End Sidebar -->
+
+    <!-- Main wrapper -->
+    <div class="body-wrapper">
+
+      <!-- Header -->
+      <header class="app-header">
+        <nav class="navbar navbar-expand-lg navbar-light">
+          <ul class="navbar-nav">
+            <li class="nav-item d-block d-xl-none">
+              <a class="nav-link sidebartoggler nav-icon-hover" id="headerCollapse" href="javascript:void(0)">
+                <i class="ti ti-menu-2"></i>
+              </a>
+            </li>
+          </ul>
+
+          <div class="navbar-collapse justify-content-end px-0" id="navbarNav">
+            <ul class="navbar-nav flex-row ms-auto align-items-center justify-content-end">
+              {% if user.is_authenticated %}
+                <li class="nav-item me-3">
+                  <span class="fw-semibold">👤 {{ user.username }}</span>
+                </li>
+
+                <form action="{% url 'logout' %}" method="post" style="display:inline;">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-sm btn-danger">
+    <i class="fas fa-sign-out-alt"></i> Salir
+  </button>
+</form>
+              {% endif %}
+            </ul>
+          </div>
+        </nav>
+      </header>
+
+      <!-- Mensajes Django -->
+      {% if messages %}
+        {% for m in messages %}
+          <script>
+            Swal.fire({
+              icon: "{{ m.tags }}",
+              title: "{{ m|escapejs }}",
+              showConfirmButton: false,
+              timer: 2000,
+              position: 'center',
+              backdrop: true
+            });
+          </script>
+        {% endfor %}
+      {% endif %}
+
+      <!-- CONTENIDO -->
+      <div class="container-fluid">
+        {% block contenido %}{% endblock %}
+      </div>
+
+    </div> <!-- /body-wrapper -->
+  </div> <!-- /page-wrapper -->
+
+  <!-- Scripts plantilla -->
+  <script src="{% static 'plantilla/src/assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js' %}"></script>
+  <script src="{% static 'plantilla/src/assets/libs/apexcharts/dist/apexcharts.min.js' %}"></script>
+  <script src="{% static 'plantilla/src/assets/libs/simplebar/dist/simplebar.js' %}"></script>
+  <script src="{% static 'plantilla/src/assets/js/sidebarmenu.js' %}"></script>
+  <script src="{% static 'plantilla/src/assets/js/app.min.js' %}"></script>
+  <script src="{% static 'plantilla/src/assets/js/dashboard.js' %}"></script>
+  <script src="https://cdn.jsdelivr.net/npm/iconify-icon@1.0.8/dist/iconify-icon.min.js"></script>
+
+  {% block extra_js %}{% endblock %}
+</body>
+</html>
